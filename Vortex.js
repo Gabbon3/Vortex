@@ -236,12 +236,12 @@ class Vortex extends Buffer {
      * @param {Uint8Array} K chiave
      */
     static poly_1305(M, K) {
-        M = new Uint16Array(typeof M === "string" ? Buffer.txt.bytes_(M).buffer : M.buffer);
+        M = Buffer.txt.Uint16_(M);
         const L = M.length;
         // ---
         const r = K.subarray(0, 16);
-        const R = super.bigint._bytes(r);
         const s = K.subarray(16);
+        const R = super.bigint._bytes(r);
         const S = super.bigint._bytes(s);
         // ---
         let acc = 0n;
@@ -251,8 +251,7 @@ class Vortex extends Buffer {
             acc = (acc + n) * R % this.Mod;
         }
         // ---
-        acc += S;
-        acc %= this.Mod;
+        acc = (acc + S) % this.Mod;
         // -- applico la maschera per ottenere 128 bit
         acc &= this.Mask;
         // ---

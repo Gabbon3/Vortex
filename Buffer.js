@@ -45,6 +45,24 @@ class Buffer {
         _bytes(buffer) {
             return new TextDecoder().decode(buffer);
         },
+        /**
+         * Converte del testo in un Uint16Array
+         * @param {String} txt 
+         * @returns 
+         */
+        Uint16_(txt) {
+            let B = typeof txt === 'string' ? this.bytes_(txt) : txt;
+            const length = B.length;
+            // -- aggiungi padding se necessario
+            const padded_length = length + (length % 2);
+            // ---
+            const U16 = new Uint16Array(padded_length / 2);
+            for (let i = 0; i < length; i += 2) {
+                U16[i / 2] = (B[i] | (B[i + 1] << 8)) >>> 0;
+            }
+            // ---
+            return U16;
+        }
     };
 
     static bigint = {
