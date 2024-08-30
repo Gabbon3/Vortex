@@ -177,7 +177,7 @@ class Vortex extends Buffer {
         // ---
         return {
             EM: super.base64._bytes(EM),
-            N: super.base64._bytes(N)
+            N: super.base64._bytes(new Uint8Array(N.buffer))
         };
     }
     /**

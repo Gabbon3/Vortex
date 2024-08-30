@@ -6,12 +6,7 @@ class Buffer {
          * @returns {Uint8Array}
          */
         bytes_(base64) {
-            let bin = atob(base64);
-            let bytes = new Uint8Array(bin.length);
-            for (let i = 0; i < bin.length; i++) {
-                bytes[i] = bin.charCodeAt(i);
-            }
-            return bytes;
+            return Uint8Array.from(atob(base64), c => c.charCodeAt(0));
         },
         /**
          * Converte un Uint8Array in una stringa base64
@@ -19,12 +14,7 @@ class Buffer {
          * @returns {string}
          */
         _bytes(buffer) {
-            let bin = "";
-            const bytes = new Uint8Array(buffer.buffer);
-            for (let i = 0; i < bytes.byteLength; i++) {
-                bin += String.fromCharCode(bytes[i]);
-            }
-            return window.btoa(bin);
+            return window.btoa(String.fromCharCode(...buffer));
         },
     };
 
@@ -44,6 +34,22 @@ class Buffer {
          */
         _bytes(buffer) {
             return new TextDecoder().decode(buffer);
+        },
+        /**
+         * Converte una stringa di testo in base64
+         * @param {String} txt 
+         */
+        base64_(txt) {
+            const B = new TextEncoder().encode(txt);
+            return Buffer.base64._bytes(B);
+        },
+        /**
+         * Converte una stringa base64 in testo
+         * @param {String} base64
+         */
+        _base64(base64) {
+            const txt = Buffer.base64.bytes_(base64);
+            return new TextDecoder().decode(txt);
         },
         /**
          * Converte del testo in un Uint16Array
