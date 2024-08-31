@@ -154,9 +154,13 @@ class Vortex extends Buffer {
         // -- converto in Array tipizzati
         M = super.txt.bytes_(M);
         const K8 = super.base64.bytes_(K); // chiave in byte
+        const N8 = typeof N === "string" ? super.base64.bytes_(N) : N; // nonce in byte
+        // --- controlli sulle lunghezze
+        if (K8.length !== 32) throw new Error("Key must be 32 byte");
+        if (N && N8.length !== 24) throw new Error("Nonche must be 24 byte");
         // ---
         K = new Uint32Array(K8.buffer);
-        N = new Uint32Array(N === null ? this.random_bytes(this.nonche_size).buffer : super.base64.bytes_(N).buffer);
+        N = new Uint32Array(N8 === null ? this.random_bytes(this.nonche_size).buffer : N8.buffer);
         // ---
         const L = M.length;
         // -- contatore
