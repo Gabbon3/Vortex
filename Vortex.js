@@ -8,6 +8,11 @@ class Vortex extends Buffer {
     static key_size = 32; // byte
     static nonche_size = 24; // byte
     /**
+     * Costanti per Vortex
+     */
+    // F = Firma dell'algoritmo ("+V0rt3x^")
+    static F = new Uint32Array([1915770411, 1584935796]);
+    /**
      * costanti per poly 1305
      */
     static Mod = 1361129467683753853853498429727072845819n; // (2n ** 130n) - 5n;
@@ -27,36 +32,44 @@ class Vortex extends Buffer {
         return as_base64 ? this.base64._bytes(bytes) : bytes;
     }
     /**
-     * Operazioni sul counter
-     */
-    static counter = {
-        /**
-         * Restituisce il contatore basandosi sullo XOR consecutivo eseguito su tutte le parole di un Uint32Array
-         * @param {Uint32Array} KN sta per K chiave N nonche, in base a quello che viene passato viene eseguito lo xor di tutte le parole che lo compongono
-         * @returns {Int32Array}
-        */
-        xor(KN) {
-            // -- numero di parole
-            const L = KN.length;
-            // -- contatore da restituire
-            const C = new Uint32Array([KN[0]]);
-            for (let i = 1; i < L; i++) {
-                C[0] ^= KN[i];
-            }
+     * Calcola il contatore eseguendo operazioni non lineari sui bit
+     * @param {Uint32Array} KN sta per K chiave N nonche, in base a quello che viene passato viene eseguito lo xor di tutte le parole che lo compongono
+     * @returns {Int32Array}
+    */
+    static counter(K, N) {
+        // --
+        N = super.merge([N, this.F], 32);
+        // -- numero di iterazioni
+        const L = 16;
+        // -- contatore da restituire
+        const C = new Uint32Array([K[0], N[0]]);
+        let m = 0;
+        let s = 7; // shift
+        for (let i = 1; i < L; i++) {
+            m = i % 8;
             // ---
-            return C;
-        },
-        /**
-         * Ottieni il contatore
-         * @param {Uint32Array} K chiave
-         * @param {Uint32Array} N nonche
-         */
-        generate(K, N) {
-            const CK = this.xor(K);
-            const CN = this.xor(N);
-            return new Uint32Array([CK[0], CN[0]]);
+            C[0] -= C[1];
+            C[0] ^= C[1];
+            // --
+            C[0] += i % 2 ? K[m] : N[m];
+            C[1] ^= i % 2 ? N[m] : K[m];
+            // --
+            s = (i * 7) % 32;
+            C[0] = (C[0] << s) | (C[0] >>> (32 - s));
+            C[1] = (C[1] << s) | (C[1] >>> (32 - s));
+            // --
+            C[0] ^= i % 2 ? N[m] : K[m];
+            C[1] += i % 2 ? K[m] : N[m];
+            // --
+            C[1] -= C[0];
+            C[1] ^= C[0];
+            // ---
+            C[0] &= 0xFFFFFFFF;
+            C[1] &= 0xFFFFFFFF;
         }
-    };
+        // ---
+        return C;
+    }
     /**
      * Mescola i dati utilizzando calcoli aritmetici semplici
      * @param {Uint32Array} B blocco di dati
@@ -164,7 +177,7 @@ class Vortex extends Buffer {
         // ---
         const L = M.length;
         // -- contatore
-        const C = this.counter.generate(K, N);
+        const C = this.counter(K, N);
         // ---
         const KS = this.keystream(K, N, C, L);
         // ---
@@ -208,7 +221,7 @@ class Vortex extends Buffer {
         // ---
         const L = EM.length;
         // -- contatore
-        const C = this.counter.generate(K, N);
+        const C = this.counter(K, N);
         // ---
         const KS = this.keystream(K, N, C, L);
         // ---
