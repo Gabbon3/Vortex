@@ -104,7 +104,6 @@ class Vortex extends Buffer {
      * Genera (cucina) lo stream basandosi su chiave e nonche
      * inizializza un blocco da 16 parole (64 byte) e lo processa 20 volte per colonne e diagonali
      * @param {Uint32Array} B 16 parole
-     * @returns {ArrayBuffer}
      */
     static cook(B) {
         // ---
@@ -145,7 +144,7 @@ class Vortex extends Buffer {
             B.set(C, 14); // --+ contatore
             // ---
             this.cook(B);
-            // -- btc = word (32 bit) to copy
+            // -- wtc = word (32 bit) to copy
             const wtc = Math.min(B.length, NW - GL);
             // ---
             KS.set(B.subarray(0, wtc), GL);
