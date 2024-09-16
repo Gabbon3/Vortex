@@ -158,21 +158,18 @@ class Vortex extends Buffer {
     }
     /**
      * Cifra utilizzando Vortex
-     * @param {String} M testo
-     * @param {String} K chiave base 64
-     * @param {String} N nonce base 64
+     * @param {ArrayBuffer} M testo
+     * @param {ArrayBuffer} K chiave base 64
+     * @param {ArrayBuffer} N nonce base 64
      */
     static encrypt(M, K, N = null) {
-        // -- converto in Array tipizzati
-        M = super.txt.bytes_(M);
-        const K8 = super.base64.bytes_(K); // chiave in byte
-        const N8 = typeof N === "string" ? super.base64.bytes_(N) : N; // nonce in byte
+        if (!(M instanceof ArrayBuffer && K instanceof ArrayBuffer)) throw new TypeError("I parametri devono essere ArrayBuffer");
         // --- controlli sulle lunghezze
-        if (K8.length !== 32) throw new Error("Key must be 32 byte");
-        if (N8 && N8.length !== 24) throw new Error("Nonche must be 24 byte");
+        if (K.byteLength !== 32) throw new Error("la Chiave deve essere di 32 byte");
+        if (N && N.byteLength !== 24) throw new Error("il Nonche deve essere di 24 byte");
         // ---
-        K = new Uint32Array(K8.buffer);
-        N = new Uint32Array(N8 === null ? this.random_bytes(this.nonche_size).buffer : N8.buffer);
+        K = new Uint32Array(K);
+        N = new Uint32Array(N.buffer ?? this.random_bytes(this.nonche_size).buffer);
         // ---
         const L = M.length;
         // -- contatore
@@ -192,28 +189,26 @@ class Vortex extends Buffer {
         EM = super.merge([EM, T], 8);
         // ---
         return {
-            EM: super.base64._bytes(EM),
-            N: super.base64._bytes(new Uint8Array(N.buffer))
+            EM: EM.buffer,
+            N: N
         };
     }
     /**
      * Decifra utilizzando Vortex
-     * @param {String} EMT testo cifrato + tag autenticazione in base64
-     * @param {String} K chiave base 64
-     * @param {String} N nonce base 64
+     * @param {ArrayBuffer} EMT testo cifrato + tag autenticazione
+     * @param {ArrayBuffer} K chiave
+     * @param {ArrayBuffer} N nonce
      */
     static decrypt(EMT, K, N) {
+        if (!(EMT instanceof ArrayBuffer && K instanceof ArrayBuffer && N instanceof ArrayBuffer)) throw new TypeError("I parametri devono essere ArrayBuffer");
         // ---
-        EMT = super.base64.bytes_(EMT);
+        EMT = new Uint8Array(EMT);
         // -- estraggo il tag dal messaggio
         const T = EMT.subarray(EMT.length - 16); // tag autenticazione
         const EM = EMT.subarray(0, EMT.length - 16);
-        // ---
-        const K8 = super.base64.bytes_(K); // chiave in byte
-        const N8 = super.base64.bytes_(N); // chiave in byte
         // --- controlli sulle lunghezze
-        if (K8.length !== 32) throw new Error("Key must be 32 byte");
-        if (N8 && N8.length !== 24) throw new Error("Nonche must be 24 byte");
+        if (K.byteLength !== 32) throw new Error("la Chiave deve essere di 32 byte");
+        if (N.byteLength !== 24) throw new Error("il Nonche deve essere di 24 byte");
         // ---
         K = new Uint32Array(K8.buffer);
         N = new Uint32Array(N8.buffer);
