@@ -1,10 +1,12 @@
-import Buffer from './Buffer.js';
+import Buffer from "./Buffer.js";
 /**
  * Cifrario a flusso
  * ChaCha20 like
  */
 class Vortex extends Buffer {
-    constructor() { super(); }
+    constructor() {
+        super();
+    }
     static key_size = 32; // byte
     static nonche_size = 24; // byte
     /**
@@ -35,7 +37,7 @@ class Vortex extends Buffer {
      * Calcola il contatore eseguendo operazioni non lineari sui bit
      * @param {Uint32Array} KN sta per K chiave N nonche, in base a quello che viene passato viene eseguito lo xor di tutte le parole che lo compongono
      * @returns {Int32Array}
-    */
+     */
     static counter(K, N) {
         // --
         N = super.merge([N, this.F], 32);
@@ -64,8 +66,8 @@ class Vortex extends Buffer {
             C[1] -= C[0];
             C[1] ^= C[0];
             // ---
-            C[0] &= 0xFFFFFFFF;
-            C[1] &= 0xFFFFFFFF;
+            C[0] &= 0xffffffff;
+            C[1] &= 0xffffffff;
         }
         // ---
         return C;
@@ -73,10 +75,10 @@ class Vortex extends Buffer {
     /**
      * Mescola i dati utilizzando calcoli aritmetici semplici
      * @param {Uint32Array} B blocco di dati
-     * @param {int} a 
-     * @param {int} b 
-     * @param {int} c 
-     * @param {int} d 
+     * @param {int} a
+     * @param {int} b
+     * @param {int} c
+     * @param {int} d
      */
     static mix(B, a, b, c, d) {
         // -- STEP 1
@@ -94,7 +96,7 @@ class Vortex extends Buffer {
         B[b] ^= B[d];
         B[c] += B[a];
         B[d] -= B[c];
-        // -- STEP 4 
+        // -- STEP 4
         B[a] ^= B[d];
         B[b] += B[c];
         B[c] -= B[b];
@@ -163,10 +165,13 @@ class Vortex extends Buffer {
      * @param {ArrayBuffer} N nonce base 64
      */
     static encrypt(M, K, N = null) {
-        if (!(M instanceof ArrayBuffer && K instanceof ArrayBuffer)) throw new TypeError("I parametri devono essere ArrayBuffer");
+        if (!(M instanceof ArrayBuffer && K instanceof ArrayBuffer))
+            throw new TypeError("I parametri devono essere ArrayBuffer");
         // --- controlli sulle lunghezze
-        if (K.byteLength !== 32) throw new Error("la Chiave deve essere di 32 byte");
-        if (N && N.byteLength !== 24) throw new Error("il Nonche deve essere di 24 byte");
+        if (K.byteLength !== 32)
+            throw new Error("la Chiave deve essere di 32 byte");
+        if (N && N.byteLength !== 24)
+            throw new Error("il Nonche deve essere di 24 byte");
         // ---
         K = new Uint32Array(K);
         N = new Uint32Array(N ?? this.random_bytes(this.nonche_size).buffer);
@@ -191,7 +196,7 @@ class Vortex extends Buffer {
         // ---
         return {
             EM: EM.buffer,
-            N: N.buffer
+            N: N.buffer,
         };
     }
     /**
@@ -201,15 +206,24 @@ class Vortex extends Buffer {
      * @param {ArrayBuffer} N nonce
      */
     static decrypt(EMT, K, N) {
-        if (!(EMT instanceof ArrayBuffer && K instanceof ArrayBuffer && N instanceof ArrayBuffer)) throw new TypeError("I parametri devono essere ArrayBuffer");
+        if (
+            !(
+                EMT instanceof ArrayBuffer &&
+                K instanceof ArrayBuffer &&
+                N instanceof ArrayBuffer
+            )
+        )
+            throw new TypeError("I parametri devono essere ArrayBuffer");
         // ---
         EMT = new Uint8Array(EMT);
         // -- estraggo il tag dal messaggio
         const T = EMT.subarray(EMT.length - 16); // tag autenticazione
         const EM = EMT.subarray(0, EMT.length - 16);
         // --- controlli sulle lunghezze
-        if (K.byteLength !== 32) throw new Error("la Chiave deve essere di 32 byte");
-        if (N.byteLength !== 24) throw new Error("il Nonche deve essere di 24 byte");
+        if (K.byteLength !== 32)
+            throw new Error("la Chiave deve essere di 32 byte");
+        if (N.byteLength !== 24)
+            throw new Error("il Nonche deve essere di 24 byte");
         // ---
         K = new Uint32Array(K);
         N = new Uint32Array(N);
@@ -234,7 +248,7 @@ class Vortex extends Buffer {
     }
     /**
      * Genera la chiave per l'autenticazione
-     * @param {Uint32Array} K chiave 
+     * @param {Uint32Array} K chiave
      * @param {Uint32Array} N nonce
      * @param {Uint32Array} C contatore
      * @returns {Uint32Array}
@@ -252,6 +266,9 @@ class Vortex extends Buffer {
      * @param {Uint8Array} K chiave
      */
     static poly_1305(M, K) {
+        // -- verifico che M sia multiplo di 2
+        if (M.length % 2 !== 0) M = new Uint8Array([...M, 0]);
+
         M = new Uint16Array(M.buffer);
         const L = M.length;
         // ---
@@ -264,7 +281,7 @@ class Vortex extends Buffer {
         // ---
         for (let i = 0; i < L; i++) {
             const n = BigInt(M[i]);
-            acc = (acc + n) * R % this.Mod;
+            acc = ((acc + n) * R) % this.Mod;
         }
         // ---
         acc = (acc + S) % this.Mod;
