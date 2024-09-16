@@ -170,6 +170,7 @@ class Vortex extends Buffer {
         // ---
         K = new Uint32Array(K);
         N = new Uint32Array(N.buffer ?? this.random_bytes(this.nonche_size).buffer);
+        M = new Uint8Array(M);
         // ---
         const L = M.length;
         // -- contatore
@@ -223,14 +224,13 @@ class Vortex extends Buffer {
         for (let i = 0; i < L; i++) {
             M[i] = EM[i] ^ KS[i];
         }
-        M = super.txt._bytes(M);
         // -- KP = Chiave Poly
         const KP = this.poly_key(K, N, C);
         // -- verifico il tag
         const TD = this.poly_1305(M, KP); // Tag generato dal testo appena Decifrato
         if (Buffer.compare(TD, T) === false) return null;
         // ---
-        return M;
+        return M.buffer;
     }
     /**
      * Genera la chiave per l'autenticazione
@@ -248,11 +248,11 @@ class Vortex extends Buffer {
     }
     /**
      * Genera un tag utilizzando Poly1305
-     * @param {String, Uint8Array} M messaggio
+     * @param {Uint8Array} M messaggio
      * @param {Uint8Array} K chiave
      */
     static poly_1305(M, K) {
-        M = Buffer.txt.Uint16_(M);
+        M = new Uint16Array(M.buffer);
         const L = M.length;
         // ---
         const r = K.subarray(0, 16);
