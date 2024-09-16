@@ -211,8 +211,8 @@ class Vortex extends Buffer {
         if (K.byteLength !== 32) throw new Error("la Chiave deve essere di 32 byte");
         if (N.byteLength !== 24) throw new Error("il Nonche deve essere di 24 byte");
         // ---
-        K = new Uint32Array(K8.buffer);
-        N = new Uint32Array(N8.buffer);
+        K = new Uint32Array(K);
+        N = new Uint32Array(N);
         // ---
         const L = EM.length;
         // -- contatore
