@@ -169,7 +169,7 @@ class Vortex extends Buffer {
         if (N && N.byteLength !== 24) throw new Error("il Nonche deve essere di 24 byte");
         // ---
         K = new Uint32Array(K);
-        N = new Uint32Array(N.buffer ?? this.random_bytes(this.nonche_size).buffer);
+        N = new Uint32Array(N ?? this.random_bytes(this.nonche_size).buffer);
         M = new Uint8Array(M);
         // ---
         const L = M.length;
