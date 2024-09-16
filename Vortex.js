@@ -191,7 +191,7 @@ class Vortex extends Buffer {
         // ---
         return {
             EM: EM.buffer,
-            N: N
+            N: N.buffer
         };
     }
     /**
