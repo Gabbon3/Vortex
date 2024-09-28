@@ -21,22 +21,18 @@ class Vortex extends Buffer {
     static Mask = 340282366920938463463374607431768211455n; // (2n ** 128n) - 1n;
     /**
      * Restituisce dei bytes casuali
-     * @param {int} b numero di bytes da restituire
-     * @param {boolean} as_base64 defalt su false per restituire i byte se no restituisce la stringa in base 64
-     * @returns {Uint8Array | String}
+     * @param {number} n_bytes 
      */
-    static random_bytes(b, as_base64 = false) {
-        if (b < 1) {
-            return null;
-        }
+    static random_bytes(n_bytes, as_base64 = false) {
+        if (n_bytes < 1) return null;
         // ---
-        const bytes = crypto.getRandomValues(new Uint8Array(b));
-        return as_base64 ? this.base64._bytes(bytes) : bytes;
+        const bytes = crypto.getRandomValues(new Uint8Array(n_bytes));
+        return as_base64 ? Buffer.base64._bytes(bytes) : bytes;
     }
     /**
      * Calcola il contatore eseguendo operazioni non lineari sui bit
      * @param {Uint32Array} KN sta per K chiave N nonche, in base a quello che viene passato viene eseguito lo xor di tutte le parole che lo compongono
-     * @returns {Int32Array}
+     * @returns {Uint32Array}
      */
     static counter(K, N) {
         // --
@@ -160,21 +156,19 @@ class Vortex extends Buffer {
     }
     /**
      * Cifra utilizzando Vortex
-     * @param {ArrayBuffer} M testo
-     * @param {ArrayBuffer} K chiave base 64
-     * @param {ArrayBuffer} N nonce base 64
+     * @param {Uint8Array} M testo
+     * @param {Uint8Array} K chiave
      */
-    static encrypt(M, K, N = null) {
-        if (!(M instanceof ArrayBuffer && K instanceof ArrayBuffer))
-            throw new TypeError("I parametri devono essere ArrayBuffer");
+    static encrypt(M, K) {
+        if (!(M instanceof Uint8Array && K instanceof Uint8Array))
+            throw new TypeError("I parametri devono essere Uint8Array");
         // --- controlli sulle lunghezze
-        if (K.byteLength !== 32)
+        if (K.length !== 32)
             throw new Error("la Chiave deve essere di 32 byte");
-        if (N && N.byteLength !== 24)
-            throw new Error("il Nonche deve essere di 24 byte");
         // ---
-        K = new Uint32Array(K);
-        N = new Uint32Array(N ?? this.random_bytes(this.nonche_size).buffer);
+        K = new Uint32Array(K.buffer);
+        const N8 = this.random_bytes(this.nonche_size, false);
+        const N = new Uint32Array(N8.buffer);
         M = new Uint8Array(M);
         // ---
         const L = M.length;
@@ -191,42 +185,36 @@ class Vortex extends Buffer {
         const KP = this.poly_key(K, N, C);
         // -- genero il tag di autenticazione
         const T = this.poly_1305(M, KP); // tag autenticazione
-        // -- concateno la firma
-        EM = super.merge([EM, T], 8);
+        // -- concateno gli elementi in un unico Uint8Array
+        const NEM = super.merge([N8, EM, T], 8);
         // ---
-        return {
-            EM: EM.buffer,
-            N: N.buffer,
-        };
+        return NEM;
     }
     /**
      * Decifra utilizzando Vortex
-     * @param {ArrayBuffer} EMT testo cifrato + tag autenticazione
-     * @param {ArrayBuffer} K chiave
-     * @param {ArrayBuffer} N nonce
+     * @param {Uint8Array} NEMT nonche + testo cifrato + tag autenticazione
+     * @param {Uint8Array} K chiave
      */
-    static decrypt(EMT, K, N) {
+    static decrypt(NEMT, K) {
         if (
             !(
-                EMT instanceof ArrayBuffer &&
-                K instanceof ArrayBuffer &&
-                N instanceof ArrayBuffer
+                NEMT instanceof Uint8Array &&
+                K instanceof Uint8Array
             )
-        )
+        ) {
             throw new TypeError("I parametri devono essere ArrayBuffer");
-        // ---
-        EMT = new Uint8Array(EMT);
-        // -- estraggo il tag dal messaggio
-        const T = EMT.subarray(EMT.length - 16); // tag autenticazione
-        const EM = EMT.subarray(0, EMT.length - 16);
+        }
         // --- controlli sulle lunghezze
-        if (K.byteLength !== 32)
+        if (K.length !== 32)
             throw new Error("la Chiave deve essere di 32 byte");
-        if (N.byteLength !== 24)
-            throw new Error("il Nonche deve essere di 24 byte");
         // ---
-        K = new Uint32Array(K);
-        N = new Uint32Array(N);
+        // -- estraggo le componenti
+        const N8 = NEMT.slice(0, 24);
+        const N = new Uint32Array(N8.buffer);
+        const EM = NEMT.subarray(24, NEMT.length - 16);
+        const T = NEMT.subarray(NEMT.length - 16); // tag autenticazione
+        // ---
+        K = new Uint32Array(K.buffer);
         // ---
         const L = EM.length;
         // -- contatore
@@ -244,7 +232,7 @@ class Vortex extends Buffer {
         const TD = this.poly_1305(M, KP); // Tag generato dal testo appena Decifrato
         if (Buffer.compare(TD, T) === false) return null;
         // ---
-        return M.buffer;
+        return M;
     }
     /**
      * Genera la chiave per l'autenticazione
